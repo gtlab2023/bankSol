@@ -47,3 +47,14 @@ Truffle 通过 Migrations 合约记录已执行的迁移脚本，避免重复部
 使用`truffle create migration binkSol`就好了，后面再测试一下是不是前面要拼一个数字.
 需要执行部署命令时使用`truffle migrate --network development`
 
+## 问题
+1. 转账的时候如何确定币种呢？
+2. 查询余额和存储的小数点如何控制
+3. could not deploy due to insufficient funds 钱包里没钱
+4. 部署时报错Transaction's maxFeePerGas (1000000000) is less than the block's baseFeePerGas (6440285650) (vm hf=shanghai -> block -> tx),这个问题通常出现在EIP-1559激活的网络（如Sepolia、Goerli等），在这些网络中，交易费由 maxFeePerGas 和 maxPriorityFeePerGas。需要在 truffle-config.js 中使用 EIP-1559 格式的 gas 费设置，而不是传统的gasPrice。EIP-1559 采用了 maxFeePerGas 和 maxPriorityFeePerGas 来控制交易费用  
+
+## 其他
+不需要条件的免费水龙头
+https://thirdweb.com/sepolia
+https://www.sepoliafaucet.io/
+https://cloud.google.com/application/web3/faucet/ethereum/sepolia
