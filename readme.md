@@ -90,5 +90,4 @@ truffle-config.json里配置好evmVersion: "byzantium"的版本，就可以成�
 [https://www.sepoliafaucet.io/](https://www.sepoliafaucet.io/)  
 [https://cloud.google.com/application/web3/faucet/ethereum/sepolia](https://cloud.google.com/application/web3/faucet/ethereum/sepolia)
 
-：0xe5e8c27924826684168Ba221210Cf83633B44CCb
 
