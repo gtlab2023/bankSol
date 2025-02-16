@@ -37,7 +37,7 @@
 7. 验证部署
    1. 使用Etherscan查看合约，在以太坊和测试网上，Etherscan提供了区块链浏览器，可以方便地查询合约部署情况。在Sepolia测试网上，你可以使用 Sepolia Etherscan。合约部署后，你会获得一个合约地址。访问Etherscan并在搜索框中输入你的合约地址。如果合约部署成功，你应该能看到合约的基本信息、交易记录等.
    2. 通过truffle控制台验证，`truffle console --network sepolia`,在控制台实例化合约并读取状态
-
+8. 部署后的合约地址在build后的abi中networks可以找到
 ```javascript
 const instance = await MyContract.deployed();
 const greeting = await instance.greeting();
@@ -81,11 +81,14 @@ msg.value的变量单位是wei，可以使用1 ether = 10^18 wei来进行处理
  钱包里没钱，需要找水龙头领取测试代币
 ### 4. 部署时报错Transaction's maxFeePerGas (1000000000) is less than the block's baseFeePerGas (6440285650) (vm hf=shanghai -> block -> tx)
 这个问题通常出现在EIP-1559激活的网络（如Sepolia、Goerli等），在这些网络中，交易费由 maxFeePerGas 和 maxPriorityFeePerGas。需要在 truffle-config.js 中使用 EIP-1559 格式的 gas 费设置，而不是传统的gasPrice。EIP-1559 采用了 maxFeePerGas 和 maxPriorityFeePerGas 来控制交易费用
-
+### 5.本地部署时报错hit an invalid opcode while deploying
+truffle-config.json里配置好evmVersion: "byzantium"的版本，就可以成功部署了,最后真正检测需要在london版本之前才可以
 ## 其他
 
 不需要条件的免费水龙头  
 [https://thirdweb.com/sepolia](https://thirdweb.com/sepolia)  
 [https://www.sepoliafaucet.io/](https://www.sepoliafaucet.io/)  
 [https://cloud.google.com/application/web3/faucet/ethereum/sepolia](https://cloud.google.com/application/web3/faucet/ethereum/sepolia)
+
+：0xe5e8c27924826684168Ba221210Cf83633B44CCb
 

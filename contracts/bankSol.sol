@@ -2,30 +2,143 @@
 pragma solidity >=0.5.8 <0.9.0;
 
 contract BankSol {
+    /**
+     * @dev 用户存款信息结构体
+     * @notice 记录用户的存款金额和存款时间
+     */
+    struct DepositInfo {
+        uint256 amount; // 存款金额
+        uint256 timestamp; // 存款时间
+        uint256 lastInterestCalculation; // 上次计算利息的时间
+    }
+    /**
+     * @dev 存储每个地址的存款信息
+     */
+    mapping(address => DepositInfo) public deposits;
 
-    mapping(address => uint256) private balances;
-    // 存款函数
+    /**
+     * @dev 年化利率(基点：1% = 100)
+     * 例如：500 表示 5% 年化利率
+     */
+    uint256 public constant ANNUAL_INTEREST_RATE = 500; // 5% 年化
+    /**
+     * @dev 最大提款限额(占总存款的百分比)
+     */
+    uint256 public constant MAX_WITHDRAWAL_PERCENTAGE = 50; // 50%
+    /**
+     * @dev 一年的秒数，用于利息计算
+     */
+    uint256 public constant SECONDS_PER_YEAR = 31536000; // 365 days
+
+    // 事件定义
+    event Deposit(address indexed user, uint256 amount);
+    event Withdrawal(address indexed user, uint256 amount, uint256 interest);
+    event InterestCalculated(address indexed user, uint256 interest);
+
+    /**
+     * @dev 存入ETH并开始计算利息
+     */
     function deposit() public payable {
-        // wei转成ether
-        balances[msg.sender] += msg.value / (10^18);
+        require(msg.value > 0, "Deposit amount must be greater than 0");
+
+        DepositInfo storage userDeposit = deposits[msg.sender];
+
+        // 如果用户已有存款，先计算并添加之前的利息
+        if (userDeposit.amount > 0) {
+            uint256 interest = calculateInterest(msg.sender);
+            userDeposit.amount += interest;
+            emit InterestCalculated(msg.sender, interest);
+        }
+
+        // 更新存款信息
+        userDeposit.amount += msg.value;
+        userDeposit.timestamp = block.timestamp;
+        userDeposit.lastInterestCalculation = block.timestamp;
+
+        emit Deposit(msg.sender, msg.value);
+    }
+    /**
+     * @dev 计算用户应得的利息
+     * @param user 用户地址
+     * @return 应得的利息金额
+     */
+    function calculateInterest(address user) public view returns (uint256) {
+        DepositInfo storage userDeposit = deposits[user];
+
+        if (userDeposit.amount == 0) {
+            return 0;
+        }
+        require(block.timestamp >= userDeposit.lastInterestCalculation, "Invalid timestamp");
+        uint256 timeElapsed = block.timestamp -
+            userDeposit.lastInterestCalculation;
+
+        // 使用基点计算利息：本金 * 年化利率 * 时间占比
+        uint256 interest = (userDeposit.amount *
+            ANNUAL_INTEREST_RATE *
+            timeElapsed) / (SECONDS_PER_YEAR * 10000);
+
+        return interest;
     }
 
-    // 查询余额函数
-    function getBalance() public view returns (uint256) {
-        return balances[msg.sender];
+    /**
+     * @dev 提取指定数量的ETH和对应的利息
+     * @param amount 要提取的金额
+     */
+    function withdraw(uint256 amount) public {
+        DepositInfo storage userDeposit = deposits[msg.sender];
+
+        require(userDeposit.amount >= amount, "Insufficient balance");
+        require(amount > 0, "Withdrawal amount must be greater than 0");
+
+        // 计算当前利息
+        uint256 interest = calculateInterest(msg.sender);
+        uint256 totalBalance = userDeposit.amount + interest;
+
+        // 检查提款限额
+        uint256 maxWithdrawal = (totalBalance * MAX_WITHDRAWAL_PERCENTAGE) /
+            100;
+        require(amount <= maxWithdrawal, "Exceeds maximum withdrawal limit");
+
+        // 更新存款信息
+        userDeposit.amount = totalBalance - amount;
+        userDeposit.lastInterestCalculation = block.timestamp;
+
+        // 发送ETH
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Transfer failed");
+
+        emit Withdrawal(msg.sender, amount, interest);
+    }
+    /**
+     * @dev 提取所有存款和利息
+     * @notice 为防止挤兑，该功能已禁用
+     */
+    function withdrawAll() public pure {
+        revert("Function disabled to prevent bank run");
     }
 
-    // 提款函数
-    function withdraw(uint256 amountInEther) external{
-        require(balances[msg.sender] >= amountInEther, "Insufficient balance"); // 检查余额是否足够
-        require(
-            address(this).balance >= amountInEther,
-            "Contract has insufficient funds"
-        ); // 检查合约余额是否足够
+    /**
+     * @dev 查询合约的总余额
+     */
+    function getContractBalance() public view returns (uint256) {
+        return address(this).balance;
+    }
+    /**
+     * @dev 查询用户的总余额（包含利息）
+     * @param user 要查询的用户地址
+     * @return 用户的总余额(包含利息)
+     */
+    function getTotalBalance(address user) public view returns (uint256) {
+        return deposits[user].amount + calculateInterest(user);
+    }
 
- 
-        balances[msg.sender] -= amountInEther; // 先更新用户余额，防止重入攻击
-        uint256 amountInWei = amountInEther * 1 ether; // ether转成wei
-        payable(msg.sender).transfer(amountInWei); // 转账给用户
+    // 处理无函数处理的以太币
+    receive() external payable {
+        revert("Use deposit() to deposit ETH");
+    }
+
+    // 合约接收到没有匹配到的函数调用时，fallback方法会被自动调用
+    fallback() external payable {
+        revert("Function does not exist");
     }
 }
